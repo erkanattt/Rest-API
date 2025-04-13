@@ -25,16 +25,17 @@ func InitDB() {
 	dbPort := "5432"
 	sslmode := "disable"
 
-	dbUrl := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		dbUser, dbPass, dbHost, dbPort, dbName, sslmode)
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
+		dbHost, dbUser, dbPass, dbName, dbPort, sslmode)
 
-	// Raw SQL connection for migrate
-	sqlDB, err := sql.Open("postgres", dbUrl)
+	sqlDB, err := sql.Open("postgres", fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		dbUser, dbPass, dbHost, dbPort, dbName, sslmode,
+	))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Golang Migrate
 	driver, err := migratepg.WithInstance(sqlDB, &migratepg.Config{})
 	if err != nil {
 		log.Fatal(err)
@@ -49,9 +50,7 @@ func InitDB() {
 		log.Fatal(err)
 	}
 
-	gormDB, err := gorm.Open(postgres.New(postgres.Config{
-		Conn: sqlDB,
-	}), &gorm.Config{})
+	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,6 +58,7 @@ func InitDB() {
 	DB = gormDB
 
 	if err := DB.AutoMigrate(&models.User{}, &models.Product{}); err != nil {
-		log.Fatal("Failed to auto migrate models: ", err)
+		log.Fatal("Миграция кезінде қате болды: ", err)
 	}
+
 }
