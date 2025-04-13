@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/erkanattt/go-rest-crud-project/internal/models"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -47,7 +49,6 @@ func InitDB() {
 		log.Fatal(err)
 	}
 
-	// GORM connection
 	gormDB, err := gorm.Open(postgres.New(postgres.Config{
 		Conn: sqlDB,
 	}), &gorm.Config{})
@@ -56,4 +57,8 @@ func InitDB() {
 	}
 
 	DB = gormDB
+
+	if err := DB.AutoMigrate(&models.User{}, &models.Product{}); err != nil {
+		log.Fatal("Failed to auto migrate models: ", err)
+	}
 }

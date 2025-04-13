@@ -12,21 +12,18 @@ import (
 )
 
 func SetupRoutes(r *gin.Engine, db *gorm.DB) {
-	// 🔐 Auth routes
 	authRoutes := r.Group("/api/v1/auth")
 	{
 		authRoutes.POST("/register", auth.Register)
 		authRoutes.POST("/login", auth.Login)
 	}
 
-	// 🔐 Protected route
 	protected := r.Group("/api/v1")
 	protected.Use(middleware.AuthRequired())
 	{
 		protected.GET("/me", auth.Me)
 	}
 
-	// 📦 Product routes
 	productRepo := repository.NewProductRepository(db)
 	productService := services.NewProductService(productRepo)
 	productHandler := delivery.NewProductHandler(productService)
