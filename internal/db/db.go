@@ -4,15 +4,16 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-
-	"github.com/erkanattt/go-rest-crud-project/internal/models"
-
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
 	migratepg "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
@@ -28,10 +29,10 @@ func InitDB() {
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
 		dbHost, dbUser, dbPass, dbName, dbPort, sslmode)
 
-	sqlDB, err := sql.Open("postgres", fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		dbUser, dbPass, dbHost, dbPort, dbName, sslmode,
-	))
+	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		dbUser, dbPass, dbHost, dbPort, dbName, sslmode)
+
+	sqlDB, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -41,7 +42,16 @@ func InitDB() {
 		log.Fatal(err)
 	}
 
-	m, err := migrate.NewWithDatabaseInstance("file:../internal/db/migrations", "postgres", driver)
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	migrationsPath := filepath.Join(cwd, "..", "internal", "db", "migrations")
+	migrationsPath = filepath.ToSlash(migrationsPath)
+	migrationsURL := fmt.Sprintf("file://%s", strings.TrimPrefix(migrationsPath, "/"))
+
+	m, err := migrate.NewWithDatabaseInstance(migrationsURL, "postgres", driver)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,9 +66,4 @@ func InitDB() {
 	}
 
 	DB = gormDB
-
-	if err := DB.AutoMigrate(&models.User{}, &models.Product{}); err != nil {
-		log.Fatal("Миграция кезінде қате болды: ", err)
-	}
-
 }

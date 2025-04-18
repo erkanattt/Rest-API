@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"github.com/erkanattt/go-rest-crud-project/internal/models" // Correct import path
+	"github.com/erkanattt/go-rest-crud-project/internal/models"
 	"gorm.io/gorm"
 )
 
