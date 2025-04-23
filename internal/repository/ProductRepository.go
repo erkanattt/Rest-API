@@ -19,6 +19,12 @@ func (r *ProductRepository) GetAll() ([]models.Product, error) {
 	return products, err
 }
 
+func (r *ProductRepository) GetByUserID(userID uint) ([]models.Product, error) {
+	var products []models.Product
+	err := r.db.Where("user_id = ?", userID).Find(&products).Error
+	return products, err
+}
+
 func (r *ProductRepository) GetById(id int) (*models.Product, error) {
 	var product models.Product
 	err := r.db.First(&product, id).Error

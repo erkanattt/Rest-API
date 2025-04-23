@@ -64,7 +64,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	token, _ := GenerateJWT(u.ID)
+	token, _ := GenerateJWT(u.ID, u.Role)
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }
 

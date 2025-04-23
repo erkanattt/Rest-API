@@ -34,5 +34,18 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 			products.PUT("/:id", productHandler.UpdateProduct)
 			products.DELETE("/:id", productHandler.DeleteProduct)
 		}
+		userRepo := repository.NewUserRepository(db)
+		userService := services.NewUserService(userRepo)
+		userHandler := delivery.NewUserHandler(userService)
+
+		users := protected.Group("/users")
+		users.Use(middleware.AdminOnly())
+		{
+			users.GET("/", userHandler.GetAllUsers)
+			users.GET("/:id", userHandler.GetUser)
+			users.PUT("/:id", userHandler.UpdateUser)
+			users.DELETE("/:id", userHandler.DeleteUser)
+		}
+
 	}
 }

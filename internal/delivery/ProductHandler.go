@@ -17,7 +17,18 @@ func NewProductHandler(service *services.ProductService) *ProductHandler {
 }
 
 func (h *ProductHandler) GetAllProducts(c *gin.Context) {
-	products, err := h.service.GetAllProducts()
+	userID := c.GetUint("userID")
+	role, _ := c.Get("role")
+
+	var products []models.Product
+	var err error
+
+	if role == "admin" {
+		products, err = h.service.GetAllProducts()
+	} else {
+		products, err = h.service.GetProductsByUserID(userID)
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not retrieve products"})
 		return
@@ -32,7 +43,7 @@ func (h *ProductHandler) GetProduct(c *gin.Context) {
 		return
 	}
 	product, err := h.service.GetProductByID(id)
-	if err != nil {
+	if err != nil || product == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
 		return
 	}
@@ -40,11 +51,7 @@ func (h *ProductHandler) GetProduct(c *gin.Context) {
 }
 
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authorized"})
-		return
-	}
+	userID := c.GetUint("userID")
 
 	var product models.Product
 	if err := c.ShouldBindJSON(&product); err != nil {
@@ -52,7 +59,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	product.UserID = userID.(uint) // 👈 байланыстырамыз
+	product.UserID = userID
 
 	if err := h.service.CreateProduct(&product); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create product"})
@@ -62,11 +69,8 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 }
 
 func (h *ProductHandler) UpdateProduct(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authorized"})
-		return
-	}
+	userID := c.GetUint("userID")
+	role, _ := c.Get("role")
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -80,7 +84,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	if product.UserID != userID.(uint) {
+	if role != "admin" && product.UserID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You can only update your own products"})
 		return
 	}
@@ -99,11 +103,8 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 }
 
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authorized"})
-		return
-	}
+	userID := c.GetUint("userID")
+	role, _ := c.Get("role")
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -117,7 +118,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 		return
 	}
 
-	if product.UserID != userID.(uint) {
+	if role != "admin" && product.UserID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You can only delete your own products"})
 		return
 	}

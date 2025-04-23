@@ -17,6 +17,10 @@ func (s *ProductService) GetAllProducts() ([]models.Product, error) {
 	return s.repo.GetAll()
 }
 
+func (s *ProductService) GetProductsByUserID(userID uint) ([]models.Product, error) {
+	return s.repo.GetByUserID(userID)
+}
+
 func (s *ProductService) GetProductByID(id int) (*models.Product, error) {
 	return s.repo.GetById(id)
 }
