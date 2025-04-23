@@ -18,7 +18,17 @@ func NewProductHandler(service *services.ProductService) *ProductHandler {
 
 func (h *ProductHandler) GetAllProducts(c *gin.Context) {
 	userID := c.GetUint("userID")
-	role, _ := c.Get("role")
+
+	roleVal, exists := c.Get("role")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Role not found"})
+		return
+	}
+	role, ok := roleVal.(string)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid role format"})
+		return
+	}
 
 	var products []models.Product
 	var err error
@@ -70,7 +80,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 
 func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	userID := c.GetUint("userID")
-	role, _ := c.Get("role")
+	role := c.GetString("role")
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -104,7 +114,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	userID := c.GetUint("userID")
-	role, _ := c.Get("role")
+	role := c.GetString("role")
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
