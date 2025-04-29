@@ -12,4 +12,7 @@ FROM alpine:latest
 
 COPY --from=builder /app/main /root/
 
+COPY --from=builder /app/internal/db/migrations /app/internal/db/migrations
+
 CMD ["/root/main"]
+

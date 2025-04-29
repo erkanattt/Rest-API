@@ -30,22 +30,27 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 		{
 			products.GET("/", productHandler.GetAllProducts)
 			products.GET("/:id", productHandler.GetProduct)
-			products.POST("/", productHandler.CreateProduct)
-			products.PUT("/:id", productHandler.UpdateProduct)
-			products.DELETE("/:id", productHandler.DeleteProduct)
 		}
+
+		adminProducts := protected.Group("/admin/products")
+		adminProducts.Use(middleware.AdminOnly())
+		{
+			adminProducts.POST("/", productHandler.CreateProduct)
+			adminProducts.PUT("/:id", productHandler.UpdateProduct)
+			adminProducts.DELETE("/:id", productHandler.DeleteProduct)
+		}
+
 		userRepo := repository.NewUserRepository(db)
 		userService := services.NewUserService(userRepo)
 		userHandler := delivery.NewUserHandler(userService)
 
-		users := protected.Group("/users")
-		users.Use(middleware.AdminOnly())
+		adminUsers := protected.Group("/admin/users")
+		adminUsers.Use(middleware.AdminOnly())
 		{
-			users.GET("/", userHandler.GetAllUsers)
-			users.GET("/:id", userHandler.GetUser)
-			users.PUT("/:id", userHandler.UpdateUser)
-			users.DELETE("/:id", userHandler.DeleteUser)
+			adminUsers.GET("/", userHandler.GetAllUsers)
+			adminUsers.GET("/:id", userHandler.GetUser)
+			adminUsers.PUT("/:id", userHandler.UpdateUser)
+			adminUsers.DELETE("/:id", userHandler.DeleteUser)
 		}
-
 	}
 }

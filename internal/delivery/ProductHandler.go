@@ -8,44 +8,18 @@ import (
 	"strconv"
 )
 
-type ProductHandler struct {
-	service *services.ProductService
-}
-
 func NewProductHandler(service *services.ProductService) *ProductHandler {
 	return &ProductHandler{service: service}
 }
 
-func (h *ProductHandler) GetAllProducts(c *gin.Context) {
-	userID := c.GetUint("userID")
-
-	roleVal, exists := c.Get("role")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Role not found"})
-		return
-	}
-	role, ok := roleVal.(string)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid role format"})
-		return
-	}
-
-	var products []models.Product
-	var err error
-
-	if role == "admin" {
-		products, err = h.service.GetAllProducts()
-	} else {
-		products, err = h.service.GetProductsByUserID(userID)
-	}
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not retrieve products"})
-		return
-	}
-	c.JSON(http.StatusOK, products)
+type ProductHandler struct {
+	service *services.ProductService
 }
 
+func (h *ProductHandler) GetAllProducts(c *gin.Context) {
+	products, _ := h.service.GetAllProducts()
+	c.JSON(http.StatusOK, products)
+}
 func (h *ProductHandler) GetProduct(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -53,7 +27,7 @@ func (h *ProductHandler) GetProduct(c *gin.Context) {
 		return
 	}
 	product, err := h.service.GetProductByID(id)
-	if err != nil || product == nil {
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
 		return
 	}
@@ -61,81 +35,54 @@ func (h *ProductHandler) GetProduct(c *gin.Context) {
 }
 
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
-	userID := c.GetUint("userID")
-
 	var product models.Product
+
 	if err := c.ShouldBindJSON(&product); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
-	product.UserID = userID
-
-	if err := h.service.CreateProduct(&product); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create product"})
+	err := h.service.CreateProduct(&product)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create product"})
 		return
 	}
+
 	c.JSON(http.StatusCreated, product)
 }
 
 func (h *ProductHandler) UpdateProduct(c *gin.Context) {
-	userID := c.GetUint("userID")
-	role := c.GetString("role")
-
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
 		return
 	}
 
-	product, err := h.service.GetProductByID(id)
-	if err != nil || product == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+	var product models.Product
+	if err := c.ShouldBindJSON(&product); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
-	if role != "admin" && product.UserID != userID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You can only update your own products"})
-		return
-	}
-
-	var updatedProduct models.Product
-	if err := c.ShouldBindJSON(&updatedProduct); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
-		return
-	}
-
-	if err := h.service.UpdateProduct(id, &updatedProduct); err != nil {
+	err = h.service.UpdateProduct(id, &product)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update product"})
 		return
 	}
-	c.JSON(http.StatusOK, updatedProduct)
+
+	c.JSON(http.StatusOK, product)
 }
-
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
-	userID := c.GetUint("userID")
-	role := c.GetString("role")
-
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
-		return
-	}
-
-	product, err := h.service.GetProductByID(id)
-	if err != nil || product == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
-		return
-	}
-
-	if role != "admin" && product.UserID != userID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You can only delete your own products"})
 		return
 	}
 
 	if err := h.service.DeleteProduct(id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete product"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
 }
