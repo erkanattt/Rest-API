@@ -42,8 +42,25 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	err := h.service.CreateProduct(&product)
-	if err != nil {
+	userIDInterface, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in context"})
+		return
+	}
+	userID, ok := userIDInterface.(uint)
+	if !ok {
+		userIDFloat, ok := userIDInterface.(float64)
+		if ok {
+			userID = uint(userIDFloat)
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID type"})
+			return
+		}
+	}
+
+	product.UserID = userID
+
+	if err := h.service.CreateProduct(&product); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create product"})
 		return
 	}
