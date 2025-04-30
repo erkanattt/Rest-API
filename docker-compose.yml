@@ -2,9 +2,8 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:17.4-alpine
+    image: postgres:15-alpine
     container_name: go-postgres
-    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 7982
@@ -12,17 +11,25 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
 
-  go-app:
-    build: .
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: go-app
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: 7982
+      DB_NAME: postgres
     ports:
       - "8000:8080"
     depends_on:
       - db
-    environment:
-      - DATABASE_URL=postgres://postgres:7982@db:5432/postgres?sslmode=disable
+    volumes:
+      - ../internal/db/migrations:/app/internal/db/migrations
 
 volumes:
-  postgres_data:
+  pgdata:

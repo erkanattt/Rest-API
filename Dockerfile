@@ -11,8 +11,6 @@ RUN go build -o main cmd/main.go
 FROM alpine:latest
 
 COPY --from=builder /app/main /root/
-
-COPY --from=builder /app/internal/db/migrations /app/internal/db/migrations
+COPY ../internal/db/migrations ./internal/db/migrations
 
 CMD ["/root/main"]
-

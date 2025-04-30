@@ -3,36 +3,32 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"github.com/golang-migrate/migrate/v4"
+	migratepg "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/joho/godotenv"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/golang-migrate/migrate/v4"
-	migratepg "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
-
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
 
 func InitDB() {
-	dbHost := "localhost"
-	dbName := "postgres"
-	dbUser := "postgres"
-	dbPass := "7982"
-	dbPort := "5432"
+	_ = godotenv.Load()
+	databaseName := "postgres"
+	dbHost := os.Getenv("DB_HOST")
+	dbName := os.Getenv("DB_NAME")
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASSWORD")
+	dbPort := os.Getenv("DB_PORT")
 	sslmode := "disable"
+	dbUrl := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s", dbUser, dbPass, dbHost, dbPort, dbName, sslmode)
 
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
-		dbHost, dbUser, dbPass, dbName, dbPort, sslmode)
-
-	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		dbUser, dbPass, dbHost, dbPort, dbName, sslmode)
-
-	sqlDB, err := sql.Open("postgres", dbURL)
+	sqlDB, err := sql.Open(databaseName, dbUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -50,8 +46,7 @@ func InitDB() {
 	migrationsPath := filepath.Join(cwd, "..", "internal", "db", "migrations")
 	migrationsPath = filepath.ToSlash(migrationsPath)
 	migrationsURL := fmt.Sprintf("file://%s", strings.TrimPrefix(migrationsPath, "/"))
-
-	m, err := migrate.NewWithDatabaseInstance(migrationsURL, "postgres", driver)
+	m, err := migrate.NewWithDatabaseInstance(migrationsURL, databaseName, driver)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,10 +55,11 @@ func InitDB() {
 		log.Fatal(err)
 	}
 
-	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{
+		Conn: sqlDB,
+	}), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	DB = gormDB
 }
