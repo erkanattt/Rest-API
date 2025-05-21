@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Admin Panel</title>
+    <style>
+        /* Reset және жалпы стильдер */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            background-color: #f3f4f6;
+            padding: 40px 20px;
+            color: #1f2937;
+        }
+
+        /* Орталық контейнер */
+        #user-list {
+            max-width: 800px;
+            margin: 0 auto 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
+        /* Әрбір пайдаланушы картасы */
+        .user-card {
+            background-color: #ffffff;
+            padding: 20px 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgb(0 0 0 / 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .user-card:hover {
+            box-shadow: 0 6px 15px rgb(0 0 0 / 0.1);
+        }
+
+        /* Пайдаланушы аты және рөлі */
+        .user-card strong {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: #111827;
+        }
+
+        .user-card span {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+
+        /* Батырма стилі */
+        .user-card button {
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s ease;
+        }
+
+        .user-card button:hover {
+            background-color: #dc2626;
+        }
+
+        /* Бас тақырып */
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 600;
+            font-size: 28px;
+            color: #111827;
+        }
+
+        /* Back батырмасы */
+        #back-btn {
+            display: block;
+            margin: 0 auto;
+            background-color: #6b7280;
+            color: white;
+            padding: 12px 28px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #back-btn:hover {
+            background-color: #4b5563;
+        }
+
+    </style>
+</head>
+<body>
+<h1>Admin Panel — Users</h1>
+<div id="user-list"></div>
+<button id="back-btn">Back</button>
+
+<script>
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert('Please login first');
+        window.location.href = '/login';
+    }
+
+    async function loadUsers() {
+        try {
+            const res = await fetch('/api/v1/admin/users', {
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            });
+            if (!res.ok) throw new Error('Failed to load users');
+
+            const users = await res.json();
+            const list = document.getElementById('user-list');
+            list.innerHTML = '';
+
+            users.forEach(user => {
+                const div = document.createElement('div');
+                div.className = 'user-card';
+                div.innerHTML = `<strong>${user.username}</strong> (Role: ${user.role})`;
+
+                const btn = document.createElement('button');
+                btn.textContent = 'Delete';
+                btn.onclick = async () => {
+                    if (confirm(`Delete user ${user.username}?`)) {
+                        const delRes = await fetch(`/api/v1/admin/users/${user.id}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        if (delRes.ok) {
+                            div.remove();
+                        } else {
+                            alert('Failed to delete user');
+                        }
+                    }
+                };
+
+                div.appendChild(btn);
+                list.appendChild(div);
+            });
+        } catch (e) {
+            alert(e.message);
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+    }
+
+    document.getElementById('back-btn').onclick = () => {
+        window.location.href = '/';
+    };
+
+    loadUsers();
+</script>
+</body>
+</html>

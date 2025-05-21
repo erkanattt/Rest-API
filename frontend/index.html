@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Product Showcase</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+            color: #1f2937;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 36px;
+            color: #111827;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            text-align: center;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .product-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 10px;
+        }
+
+        .product-price {
+            font-size: 16px;
+            color: #4b5563;
+        }
+
+        #logout-btn {
+            display: block;
+            margin: 50px auto 0;
+            background-color: #ef4444;
+            color: white;
+            padding: 12px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #logout-btn:hover {
+            background-color: #dc2626;
+        }
+        #admin-btn {
+            display: block;
+            margin: 20px auto;
+            background-color: #3b82f6;
+            color: white;
+            padding: 12px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+        #admin-btn:hover {
+            background-color: #2563eb;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🛍️ Product Showcase</h1>
+    </header>
+    <a href="/admin" id="admin-btn" style="display: none;">Admin Panel</a>
+
+    <div class="product-grid" id="products-list"></div>
+
+    <button id="logout-btn">Logout</button>
+</div>
+
+<script>
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+        alert('Please login first');
+        window.location.href = '/login';
+    }
+
+    async function loadProducts() {
+        try {
+            const res = await fetch('/api/v1/products/', {
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            });
+
+            if (!res.ok) throw new Error('Failed to load products');
+
+            const products = await res.json();
+            const container = document.getElementById('products-list');
+            container.innerHTML = '';
+
+            products.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'card';
+
+                const name = document.createElement('div');
+                name.className = 'product-name';
+                name.textContent = p.name;
+
+                const price = document.createElement('div');
+                price.className = 'product-price';
+                price.textContent = p.price ? `$${p.price}` : 'No price listed';
+
+                card.appendChild(name);
+                card.appendChild(price);
+                container.appendChild(card);
+            });
+        } catch (e) {
+            alert(e.message);
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+    }
+
+    document.getElementById('logout-btn').addEventListener('click', () => {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+    });
+
+    loadProducts();
+    function parseJwt(token) {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    const decoded = parseJwt(token);
+    if (decoded && decoded.role === 'admin') {
+        document.getElementById('admin-btn').style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
